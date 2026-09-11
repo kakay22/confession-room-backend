@@ -6,8 +6,6 @@ from pathlib import Path
 from datetime import timedelta
 import os
 
-import dj_database_url
-
 
 # ============================================================
 # BASE DIRECTORY
@@ -20,9 +18,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 # ============================================================
 
-# IMPORTANT:
-# Set SECRET_KEY in Render environment variables.
-# A development fallback is provided only for local development.
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "django-insecure-local-development-only-change-me"
@@ -31,24 +26,20 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
 
 
-# Render provides RENDER_EXTERNAL_HOSTNAME automatically.
-RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-
+# ============================================================
+# ALLOWED HOSTS
+# ============================================================
 
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
 ]
 
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+# PythonAnywhere hostname
+PYTHONANYWHERE_HOST = os.environ.get("PYTHONANYWHERE_HOST")
 
-
-# Optional manual production host
-RENDER_HOSTNAME = os.environ.get("RENDER_HOSTNAME")
-
-if RENDER_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_HOSTNAME)
+if PYTHONANYWHERE_HOST:
+    ALLOWED_HOSTS.append(PYTHONANYWHERE_HOST)
 
 
 # ============================================================
@@ -80,7 +71,6 @@ MIDDLEWARE = [
 
     "django.middleware.security.SecurityMiddleware",
 
-    # WhiteNoise serves static files in production.
     "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -106,12 +96,14 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 
-# Allow an additional frontend URL through an environment variable.
-# Useful if you later add a custom domain.
+# Optional additional frontend URL
 FRONTEND_URL = os.environ.get("FRONTEND_URL")
 
 if FRONTEND_URL:
-    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL.rstrip("/"))
+    FRONTEND_URL = FRONTEND_URL.rstrip("/")
+
+    if FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
 
 
 # ============================================================
@@ -122,8 +114,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://confession-room-frontend.vercel.app",
 ]
 
-if FRONTEND_URL:
-    CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL.rstrip("/"))
+if FRONTEND_URL and FRONTEND_URL not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL)
 
 
 # ============================================================
@@ -192,28 +184,15 @@ WSGI_APPLICATION = "config.wsgi.application"
 # DATABASE
 # ============================================================
 
-# Render will provide DATABASE_URL for PostgreSQL.
-#
-# Locally, if DATABASE_URL does not exist, Django continues
-# using your existing SQLite database.
+# PythonAnywhere free account:
+# Use SQLite.
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-if DATABASE_URL:
-    DATABASES = {
-        "default": dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+}
 
 
 # ============================================================
@@ -277,7 +256,8 @@ STATIC_URL = "/static/"
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# WhiteNoise compressed static files.
+
+# WhiteNoise
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",

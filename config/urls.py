@@ -12,7 +12,7 @@ urlpatterns = [
 ]
 
 
-# Serve uploaded media during local development only.
+# Serve media during local development only.
 if settings.DEBUG:
     urlpatterns += static(
         settings.MEDIA_URL,
