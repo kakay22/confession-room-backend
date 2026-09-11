@@ -33,6 +33,7 @@ DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
+    "confessionroom.pythonanywhere.com",
 ]
 
 # PythonAnywhere hostname
