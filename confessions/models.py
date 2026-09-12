@@ -53,11 +53,13 @@ class Confession(models.Model):
     TEXT = "TEXT"
     IMAGE = "IMAGE"
     AUDIO = "AUDIO"
+    PANORAMA = "PANORAMA"
 
     CONFESSION_TYPES = (
         (TEXT, "Text"),
         (IMAGE, "Image"),
         (AUDIO, "Audio"),
+        (PANORAMA, "360° Panorama"),
     )
 
     author = models.ForeignKey(
@@ -385,10 +387,12 @@ class ConfessionMedia(models.Model):
 
     IMAGE = "IMAGE"
     AUDIO = "AUDIO"
+    PANORAMA = "PANORAMA"
 
     MEDIA_TYPES = (
         (IMAGE, "Image"),
         (AUDIO, "Audio"),
+        (PANORAMA, "360° Panorama"),
     )
 
     confession = models.ForeignKey(

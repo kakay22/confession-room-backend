@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from PIL import Image
 
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
@@ -63,6 +64,40 @@ class ConfessionListCreateView(generics.ListCreateAPIView):
         if not uploaded_file:
             return
 
+        # Validate panorama image
+        if confession_type == Confession.PANORAMA:
+
+            if not uploaded_file.content_type:
+                raise ValidationError(
+                    "We couldn't determine the uploaded file type."
+                )
+
+            if not uploaded_file.content_type.startswith("image/"):
+                raise ValidationError(
+                    "A 360° panorama must be an image file."
+                )
+
+            try:
+                image = Image.open(uploaded_file)
+                width, height = image.size
+
+            except Exception:
+                raise ValidationError(
+                    "The uploaded panorama is not a valid image."
+                )
+
+            # Equirectangular panoramas are normally close to a 2:1 ratio.
+            ratio = width / height if height else 0
+
+            if ratio < 1.7 or ratio > 2.3:
+                raise ValidationError(
+                    "This image does not appear to be a 360° panorama. "
+                    "Please upload an equirectangular 360° photo."
+                )
+
+            # Reset file position after PIL reads it.
+            uploaded_file.seek(0)
+
         confession_type = self.request.data.get(
             "confession_type",
             Confession.TEXT
@@ -74,6 +109,9 @@ class ConfessionListCreateView(generics.ListCreateAPIView):
 
         elif confession_type == Confession.AUDIO:
             media_type = ConfessionMedia.AUDIO
+
+        elif confession_type == Confession.PANORAMA:
+            media_type = ConfessionMedia.PANORAMA
 
         else:
             return
