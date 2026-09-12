@@ -54,56 +54,57 @@ class ConfessionListCreateView(generics.ListCreateAPIView):
         return [AllowAny()]
 
     def perform_create(self, serializer):
-
-        confession = serializer.save(
-            author=self.request.user
-        )
-
-        uploaded_file = self.request.FILES.get("media")
-
-        if not uploaded_file:
-            return
-
-        # Validate panorama image
-        if confession_type == Confession.PANORAMA:
-
-            if not uploaded_file.content_type:
-                raise ValidationError(
-                    "We couldn't determine the uploaded file type."
-                )
-
-            if not uploaded_file.content_type.startswith("image/"):
-                raise ValidationError(
-                    "A 360° panorama must be an image file."
-                )
-
-            try:
-                image = Image.open(uploaded_file)
-                width, height = image.size
-
-            except Exception:
-                raise ValidationError(
-                    "The uploaded panorama is not a valid image."
-                )
-
-            # Equirectangular panoramas are normally close to a 2:1 ratio.
-            ratio = width / height if height else 0
-
-            if ratio < 1.7 or ratio > 2.3:
-                raise ValidationError(
-                    "This image does not appear to be a 360° panorama. "
-                    "Please upload an equirectangular 360° photo."
-                )
-
-            # Reset file position after PIL reads it.
-            uploaded_file.seek(0)
-
         confession_type = self.request.data.get(
             "confession_type",
             Confession.TEXT
         )
 
-        # Determine media type
+        uploaded_file = self.request.FILES.get("media")
+
+        # Validate panorama BEFORE creating the confession
+        if confession_type == Confession.PANORAMA and uploaded_file:
+            try:
+                image = Image.open(uploaded_file)
+
+                width, height = image.size
+
+                if not height:
+                    raise ValidationError(
+                        "Unable to determine the panorama dimensions."
+                    )
+
+                ratio = width / height
+
+                # Accept both:
+                # 1. True 360° equirectangular images (~2:1)
+                # 2. Wide / partial panoramas
+                #
+                # Minimum accepted ratio is 1.5:1.
+                if ratio < 1.5:
+                    raise ValidationError(
+                        "Please upload a wide panorama image. "
+                        "True 360° photos are usually close to a 2:1 ratio."
+                    )
+
+                uploaded_file.seek(0)
+
+            except ValidationError:
+                raise
+
+            except Exception:
+                raise ValidationError(
+                    "Unable to read this panorama image. "
+                    "Please upload a valid JPG, PNG, or WEBP image."
+                )
+
+        # Create confession only after validation succeeds
+        confession = serializer.save(
+            author=self.request.user
+        )
+
+        if not uploaded_file:
+            return
+
         if confession_type == Confession.IMAGE:
             media_type = ConfessionMedia.IMAGE
 
@@ -116,14 +117,10 @@ class ConfessionListCreateView(generics.ListCreateAPIView):
         else:
             return
 
-        # Get duration for audio
         duration = None
 
         if media_type == ConfessionMedia.AUDIO:
-
-            duration_value = self.request.data.get(
-                "media_duration"
-            )
+            duration_value = self.request.data.get("media_duration")
 
             if duration_value:
                 try:

@@ -105,13 +105,15 @@ class ConfessionSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-
         confession_type = attrs.get(
             "confession_type",
             Confession.TEXT
         )
 
-        content = attrs.get("content", "").strip()
+        content = attrs.get(
+            "content",
+            ""
+        ).strip()
 
         if confession_type == Confession.TEXT and not content:
             raise serializers.ValidationError({
@@ -120,7 +122,8 @@ class ConfessionSerializer(serializers.ModelSerializer):
 
         if confession_type in [
             Confession.IMAGE,
-            Confession.AUDIO
+            Confession.AUDIO,
+            Confession.PANORAMA,
         ] and not content:
             raise serializers.ValidationError({
                 "content": "Please add a caption."

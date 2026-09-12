@@ -59,7 +59,7 @@ class Confession(models.Model):
         (TEXT, "Text"),
         (IMAGE, "Image"),
         (AUDIO, "Audio"),
-        (PANORAMA, "360° Panorama"),
+        (PANORAMA, "Panorama"),
     )
 
     author = models.ForeignKey(
@@ -212,52 +212,6 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.anonymous_name}: {self.content[:50]}"
-
-
-class Report(models.Model):
-
-    REASON_CHOICES = (
-        ("SPAM", "Spam"),
-        ("HARASSMENT", "Harassment"),
-        ("INAPPROPRIATE", "Inappropriate Content"),
-        ("BULLYING", "Bullying"),
-        ("OTHER", "Other"),
-    )
-
-    confession = models.ForeignKey(
-        Confession,
-        on_delete=models.CASCADE,
-        related_name="reports"
-    )
-
-    reporter = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="confession_reports"
-    )
-
-    reason = models.CharField(
-        max_length=30,
-        choices=REASON_CHOICES
-    )
-
-    details = models.TextField(
-        blank=True
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
-
-    is_resolved = models.BooleanField(
-        default=False
-    )
-
-    class Meta:
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"Report #{self.id}"
 
 class Notification(models.Model):
     REACTION = "REACTION"
